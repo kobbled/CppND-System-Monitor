@@ -4,6 +4,10 @@
 #include <fstream>
 #include <regex>
 #include <string>
+#include <set>
+#include <unordered_map>
+#include <vector>
+
 
 namespace LinuxParser {
 // Paths
@@ -18,12 +22,18 @@ const std::string kVersionFilename{"/version"};
 const std::string kOSPath{"/etc/os-release"};
 const std::string kPasswordPath{"/etc/passwd"};
 
+//Struct to store parsed data from proc_stat
+struct procData {
+  int tot_proc;
+  int run_proc;
+  std::unordered_map<int, std::vector<int>> cpu;
+};
+
 // System
-float MemoryUtilization();
+std::unordered_map<std::string, int> MemoryUtilization();
 long UpTime();
 std::vector<int> Pids();
-int TotalProcesses();
-int RunningProcesses();
+procData Processes();
 std::string OperatingSystem();
 std::string Kernel();
 
@@ -46,6 +56,14 @@ long ActiveJiffies();
 long ActiveJiffies(int pid);
 long IdleJiffies();
 
+
+//set of key names for parsing memory utilization
+const std::set<std::string> memSet {"MemTotal","MemFree",
+                              "MemAvailable", "Buffers",
+                              "Cached", "SwapTotal",
+                              "SwapFree", "Shmem",
+                              "SReclaimable"};
+
 // Processes
 std::string Command(int pid);
 std::string Ram(int pid);
@@ -54,4 +72,4 @@ std::string User(int pid);
 long int UpTime(int pid);
 };  // namespace LinuxParser
 
-#endif
+#endif //SYSTEM_PARSER_H

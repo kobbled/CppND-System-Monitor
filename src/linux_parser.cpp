@@ -2,6 +2,8 @@
 #include <unistd.h>
 #include <string>
 #include <vector>
+#include <stdexcept>
+#include <thread>
 
 #include "linux_parser.h"
 
@@ -35,13 +37,13 @@ string LinuxParser::OperatingSystem() {
 
 // DONE: An example of how to read data from the filesystem
 string LinuxParser::Kernel() {
-  string os, kernel;
+  string os, kernel, version;
   string line;
   std::ifstream stream(kProcDirectory + kVersionFilename);
   if (stream.is_open()) {
     std::getline(stream, line);
     std::istringstream linestream(line);
-    linestream >> os >> kernel;
+    linestream >> os >> version >> kernel;
   }
   return kernel;
 }
@@ -66,8 +68,44 @@ vector<int> LinuxParser::Pids() {
   return pids;
 }
 
-// TODO: Read and return the system memory utilization
-float LinuxParser::MemoryUtilization() { return 0.0; }
+// Read and return the system memory utilization
+std::unordered_map<std::string, int> LinuxParser::MemoryUtilization() {
+  string line;
+  //regex out the key value pairs
+  std::smatch matches;
+  //regex for parsing /proc/meminfo
+  std::regex reg("((\\w+):\\s*(.+?)\\s)");
+  //start stream for /proc/meminfo file
+  std::ifstream stream(kProcDirectory + kMeminfoFilename);
+  //store parsed file in a dictionary
+  std::unordered_map<std::string, int> meminfo;
+  //we do not need to store all of the members, and regex
+  //will error out if full file is read.
+  if (stream.is_open()) {
+    for(int i = 0; i < 32; i++) {
+      std::getline(stream, line);
+      while(std::regex_search(line, matches, reg)){
+        if(memSet.find(matches[2].str()) != memSet.end()){
+          //store in dictionary for memory utilization 
+           meminfo[matches[2].str()] = std::stoi(matches[3].str());
+        }
+        line = matches.suffix().str();
+      }
+    }
+    stream.close();
+  }
+
+  //check if dictionary is the same size as memSet, if not throw
+  //error
+  if (meminfo.size() != memSet.size()){
+    throw std::length_error("MemoryUtilization() did not find all"
+                            " the specified keys. stream file might"
+                            " be wrong.");
+  }
+
+  return meminfo;
+
+}
 
 // TODO: Read and return the system uptime
 long LinuxParser::UpTime() { return 0; }
@@ -88,8 +126,64 @@ long LinuxParser::IdleJiffies() { return 0; }
 // TODO: Read and return CPU utilization
 vector<string> LinuxParser::CpuUtilization() { return {}; }
 
-// TODO: Read and return the total number of processes
-int LinuxParser::TotalProcesses() { return 0; }
+// Read /proc/stat and return total processes, running processes, and cpu utilization
+LinuxParser::procData LinuxParser::Processes() {
+  string line;
+  //start stream for /proc/stat file
+  std::ifstream stream(kProcDirectory + kStatFilename);
+  //regex for total processes
+  std::regex re("((?:^|\\W)(?:processes)(?:$|\\W)(?:\\s*)(\\d+$))");
+  //regex for running processes
+  std::regex re2("((?:^|\\W)(?:procs_running)(?:$|\\W)(?:\\s*)(\\d+$))");
+  //regex for cpu
+  std::regex re3("(?:cpu)([\\d]?)\\s*(\\d+)\\s(\\d+)\\s(\\d+)\\s(\\d+)\\s(\\d+)\\s(\\d+)\\s(\\d+)\\s(\\d+)\\s(\\d+)\\s(\\d+)");
+
+  //create structure to store parsed data
+  LinuxParser::procData proc_stat;
+
+  if (stream.is_open()) {
+    while (std::getline(stream, line)) {
+
+      //total processes
+      std::smatch match;
+      if (std::regex_search(line, match, re) && match.size() > 1) {
+          proc_stat.tot_proc = std::stoi(match[2].str());
+      }
+      //running processes
+      std::smatch match2;
+      if (std::regex_search(line, match2, re2) && match2.size() > 1) {
+          proc_stat.run_proc = std::stoi(match2[2].str());
+      }
+      //cpu
+      std::smatch match3;
+      if (std::regex_search(line, match3, re3) && match3.size() > 1) {
+          //cpu
+          if(match3[1].str().empty()){
+            vector<int> v;
+            for(int i = 2; i < 12; i++){
+              v.push_back(std::stoi(match3[i].str()));
+            }
+
+            // store aggegated cpu with key '-1'
+            proc_stat.cpu[-1] = v;
+          //processor
+          } else {
+            vector<int> v;
+            for(int i = 2; i < 12; i++){
+              v.push_back(std::stoi(match3[i].str()));
+            }
+
+            proc_stat.cpu[std::stoi(match3[1].str())] = v;
+          }
+      }
+
+    }
+  }
+
+  return proc_stat;
+
+}
+
 
 // TODO: Read and return the number of running processes
 int LinuxParser::RunningProcesses() { return 0; }
