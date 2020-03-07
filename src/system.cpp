@@ -16,8 +16,13 @@ using std::size_t;
 using std::string;
 using std::vector;
 
-// TODO: Return the system's CPU
-Processor& System::Cpu() { return cpu_; }
+// Return the system's CPU
+Processor& System::Cpu() {
+
+    cpu_.getUsage(this->proc_stat_, this->old_proc_stat_);
+
+    return cpu_; 
+}
 
 // TODO: Return a container composed of the system's processes
 vector<Process>& System::Processes() { return processes_; }
@@ -53,5 +58,5 @@ int System::RunningProcesses() { return proc_stat_.run_proc; }
 // Return the total number of processes on the system
 int System::TotalProcesses() { return proc_stat_.tot_proc; }
 
-// TODO: Return the number of seconds since the system started running
-long int System::UpTime() { return 0; }
+// Return the number of seconds since the system started running
+long int System::UpTime() { return LinuxParser::UpTime(); }
