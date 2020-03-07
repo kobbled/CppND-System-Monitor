@@ -9,6 +9,19 @@
 #include <vector>
 
 
+// CPU field list names
+#define CPU_USER 0
+#define CPU_NICE 1
+#define CPU_SYSTEM 2
+#define CPU_IDLE 3
+#define CPU_IOWAIT 4
+#define CPU_IRQ 5
+#define CPU_SOFTIRQ 6
+#define CPU_STEAL 7
+#define CPU_GUEST 8
+#define CPU_GUEST_NICE 9
+
+
 namespace LinuxParser {
 // Paths
 const std::string kProcDirectory{"/proc/"};
@@ -29,6 +42,13 @@ struct procData {
   std::unordered_map<int, std::vector<int>> cpu;
 };
 
+//store cpu usage struct
+struct usage {
+  long total;
+  long idle;
+};
+
+
 // System
 std::unordered_map<std::string, int> MemoryUtilization();
 long UpTime();
@@ -36,6 +56,11 @@ std::vector<int> Pids();
 procData Processes();
 std::string OperatingSystem();
 std::string Kernel();
+
+usage CpuUsage(procData& data);
+std::vector<usage> ProcessorUsage(procData& data);
+
+
 
 // CPU
 enum CPUStates {

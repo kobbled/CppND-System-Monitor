@@ -196,8 +196,73 @@ LinuxParser::procData LinuxParser::Processes() {
 }
 
 
-// TODO: Read and return the number of running processes
-int LinuxParser::RunningProcesses() { return 0; }
+/**
+ * Calculate total and idle usage of aggregate processor
+ */
+LinuxParser::usage LinuxParser::CpuUsage(LinuxParser::procData& data) {
+    auto cpu = data.cpu;
+    LinuxParser::usage usage = {};
+
+    //if on fist cycle handle previous cpu usage
+    if (!data.cpu.empty()){
+      //(ref) https://stackoverflow.com/questions/23367857/accurate-calculation-of-cpu-usage-given-in-percentage-in-linux
+      long idle = cpu[-1][CPU_IDLE] + cpu[-1][CPU_IOWAIT];
+      long nonidle = cpu[-1][CPU_USER] + cpu[-1][CPU_NICE] + 
+                  cpu[-1][CPU_SYSTEM] + cpu[-1][CPU_IRQ] + 
+                  cpu[-1][CPU_SOFTIRQ] + cpu[-1][CPU_STEAL];
+      
+      usage.total = idle + nonidle;
+      usage.idle = idle;
+    } else {
+      usage.total = 0;
+      usage.idle = 0;
+    }
+
+    return(usage);
+}
+
+/**
+ * Calculate total and idle usage of each processor
+ */
+vector<LinuxParser::usage> LinuxParser::ProcessorUsage(LinuxParser::procData& data) {
+
+    auto cpu = data.cpu;
+    //if on fist cycle handle previous cpu usage
+    vector<LinuxParser::usage> processor_usage;
+    if (!data.cpu.empty()){
+      for ( auto it = cpu.begin(); it != cpu.end(); ++it ) {
+          if(it->first != -1){
+
+              LinuxParser::usage usage = {};
+              //(ref) https://stackoverflow.com/questions/23367857/accurate-calculation-of-cpu-usage-given-in-percentage-in-linux
+              long idle = it->second[CPU_IDLE] + it->second[CPU_IOWAIT];
+              long nonidle = it->second[CPU_USER] + it->second[CPU_NICE] + 
+                      it->second[CPU_SYSTEM] + it->second[CPU_IRQ] + 
+                      it->second[CPU_SOFTIRQ] + it->second[CPU_STEAL];
+              usage.total = idle + nonidle;
+              usage.idle = idle;
+
+              processor_usage.emplace_back(usage);
+          }
+      }
+    } else {
+      //get total number of cpus
+      unsigned numCpu = std::thread::hardware_concurrency();
+
+      for(unsigned i=0; i < numCpu; i++){
+        LinuxParser::usage usage = {};
+        usage.total = 0;
+        usage.idle = 0;
+
+        processor_usage.emplace_back(usage);
+      }
+
+    }
+
+    return processor_usage;
+
+}
+
 
 // TODO: Read and return the command associated with a process
 // REMOVE: [[maybe_unused]] once you define the function
