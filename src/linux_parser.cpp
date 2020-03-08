@@ -303,7 +303,7 @@ string LinuxParser::Command(int pid) {
 }
 
 // Read and return the memory used by a process
-string LinuxParser::Ram(int pid[[maybe_unused]]) {
+string LinuxParser::Ram(int pid) {
   // /proc/[pid]/stat  
   std::ifstream stream(kProcDirectory + std::to_string(pid) + kStatusFilename);
   string line;
