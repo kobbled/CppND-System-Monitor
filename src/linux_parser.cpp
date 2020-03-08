@@ -289,6 +289,46 @@ LinuxParser::processStat LinuxParser::Process(int pid){
   return stat;
 }
 
+
+// Read and return the command associated with a process
+string LinuxParser::Command(int pid) { 
+  // /proc/[pid]/cmdline
+  std::ifstream stream(kProcDirectory + std::to_string(pid) + kCmdlineFilename);
+
+  string cmdLine;
+  if (stream.is_open()) {
+    std::getline(stream, cmdLine);
+  }
+  return cmdLine;
+}
+
+// Read and return the memory used by a process
+string LinuxParser::Ram(int pid[[maybe_unused]]) {
+  // /proc/[pid]/stat  
+  std::ifstream stream(kProcDirectory + std::to_string(pid) + kStatusFilename);
+  string line;
+  string fl;
+  long ram;
+
+  std::smatch match;
+  std::regex re("((?:VmSize:[\\s\\t]*)(\\d+))");
+
+  if (stream.is_open()) {
+    for(int i = 0; i < 40; i++) {
+      std::getline(stream, line);
+      fl += line;
+    }
+    stream.close();
+
+    if (std::regex_search(fl, match, re) && match.size() > 1) {
+      ram = std::stoi(match[2].str());
+    }
+  }
+
+  return std::to_string(ram/1000);
+
+}
+
 // Read and return the user ID associated with a process
 string LinuxParser::Uid(int pid) {
   // /proc/[pid]/stat  
