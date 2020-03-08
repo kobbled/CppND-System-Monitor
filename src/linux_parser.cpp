@@ -289,22 +289,53 @@ LinuxParser::processStat LinuxParser::Process(int pid){
   return stat;
 }
 
-// TODO: Read and return the command associated with a process
-// REMOVE: [[maybe_unused]] once you define the function
-string LinuxParser::Command(int pid[[maybe_unused]]) { return string(); }
+// Read and return the user ID associated with a process
+string LinuxParser::Uid(int pid) {
+  // /proc/[pid]/stat  
+  std::ifstream stream(kProcDirectory + std::to_string(pid) + kStatusFilename);
+  string line;
+  string fl;
+  string uid;
 
-// TODO: Read and return the memory used by a process
-// REMOVE: [[maybe_unused]] once you define the function
-string LinuxParser::Ram(int pid[[maybe_unused]]) { return string(); }
+  std::smatch match;
+  std::regex re("((?:Uid:[\\s\\t]*)(\\d+))");
 
-// TODO: Read and return the user ID associated with a process
-// REMOVE: [[maybe_unused]] once you define the function
-string LinuxParser::Uid(int pid[[maybe_unused]]) { return string(); }
+  if (stream.is_open()) {
+    for(int i = 0; i < 20; i++) {
+      std::getline(stream, line);
+      fl += line;
+    }
+    stream.close();
 
-// TODO: Read and return the user associated with a process
-// REMOVE: [[maybe_unused]] once you define the function
-string LinuxParser::User(int pid[[maybe_unused]]) { return string(); }
+    if (std::regex_search(fl, match, re) && match.size() > 1) {
+      uid = match[2].str();
+    }
+  }
 
-// TODO: Read and return the uptime of a process
-// REMOVE: [[maybe_unused]] once you define the function
-long LinuxParser::UpTime(int pid[[maybe_unused]]) { return 0; }
+  return uid; 
+  }
+
+// Read and return the user associated with a process
+string LinuxParser::User(int pid) {
+  string search_uid = LinuxParser::Uid(pid);
+  string user, password, uid, line;
+
+  //open stream /etc/passwd
+  std::ifstream filestream(kPasswordPath);
+  //if process is not running, dump it.
+  if (!search_uid.empty() && filestream.is_open()){
+    while (std::getline(filestream, line)){
+      std::replace(line.begin(), line.end(), ' ', '_');
+      std::replace(line.begin(), line.end(), ':', ' ');
+      std::istringstream linestream(line);
+      while (linestream >> user >> password >> uid) {
+        if(search_uid == uid){
+          std::replace(user.begin(), user.end(), '_', ' ');
+          return user;
+        }
+      }
+    }
+  }
+
+  return user; 
+  }
