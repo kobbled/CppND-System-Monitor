@@ -4,8 +4,11 @@
 #include <vector>
 #include <stdexcept>
 #include <thread>
+#include <experimental/filesystem>
 
 #include "linux_parser.h"
+
+namespace fs = std::experimental::filesystem;
 
 using std::stof;
 using std::string;
@@ -48,23 +51,28 @@ string LinuxParser::Kernel() {
   return kernel;
 }
 
-// BONUS: Update this to use std::filesystem
+//find all pids of processes
 vector<int> LinuxParser::Pids() {
   vector<int> pids;
-  DIR* directory = opendir(kProcDirectory.c_str());
-  struct dirent* file;
-  while ((file = readdir(directory)) != nullptr) {
-    // Is this a directory?
-    if (file->d_type == DT_DIR) {
-      // Is every character of the name a digit?
-      string filename(file->d_name);
-      if (std::all_of(filename.begin(), filename.end(), isdigit)) {
-        int pid = stoi(filename);
+
+  //taken from https://stackoverflow.com/questions/4654636/how-to-determine-if-a-string-is-a-number-with-c
+  auto is_number = [](const std::string& s){
+      std::string::const_iterator it = s.begin();
+      while (it != s.end() && std::isdigit(*it)) ++it;
+      return !s.empty() && it == s.end();
+  };
+
+  //(ref) https://www.bfilipek.com/2019/04/dir-iterate.html
+  for (const auto& entry : fs::directory_iterator(kProcDirectory.c_str())) {
+    const auto filename = entry.path().filename().string();
+    if (fs::is_directory(entry.status())) {
+      if (is_number(filename)) {
+        int pid = std::stoi(filename);
         pids.push_back(pid);
       }
     }
   }
-  closedir(directory);
+
   return pids;
 }
 
