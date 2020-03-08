@@ -48,12 +48,21 @@ struct usage {
   long idle;
 };
 
+struct processStat {
+  std::string name;
+  long utime;
+  long stime;
+  long cutime;
+  long cstime;
+  long starttime;
+};
+
 
 // System
 std::unordered_map<std::string, int> MemoryUtilization();
 long UpTime();
 std::vector<int> Pids();
-procData Processes();
+procData Processor();
 std::string OperatingSystem();
 std::string Kernel();
 
@@ -75,12 +84,6 @@ enum CPUStates {
   kGuest_,
   kGuestNice_
 };
-std::vector<std::string> CpuUtilization();
-long Jiffies();
-long ActiveJiffies();
-long ActiveJiffies(int pid);
-long IdleJiffies();
-
 
 //set of key names for parsing memory utilization
 const std::set<std::string> memSet {"MemTotal","MemFree",
@@ -90,6 +93,7 @@ const std::set<std::string> memSet {"MemTotal","MemFree",
                               "SReclaimable"};
 
 // Processes
+processStat Process(int pid);
 std::string Command(int pid);
 std::string Ram(int pid);
 std::string Uid(int pid);

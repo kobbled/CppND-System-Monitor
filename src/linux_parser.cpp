@@ -115,7 +115,7 @@ std::unordered_map<std::string, int> LinuxParser::MemoryUtilization() {
 
 }
 
-// TODO: Read and return the system uptime
+// Read and return the system uptime
 long LinuxParser::UpTime() {
   string suptime, sidle;
   string line;
@@ -129,24 +129,8 @@ long LinuxParser::UpTime() {
   return std::stol(suptime); 
 }
 
-// TODO: Read and return the number of jiffies for the system
-long LinuxParser::Jiffies() { return 0; }
-
-// TODO: Read and return the number of active jiffies for a PID
-// REMOVE: [[maybe_unused]] once you define the function
-long LinuxParser::ActiveJiffies(int pid[[maybe_unused]]) { return 0; }
-
-// TODO: Read and return the number of active jiffies for the system
-long LinuxParser::ActiveJiffies() { return 0; }
-
-// TODO: Read and return the number of idle jiffies for the system
-long LinuxParser::IdleJiffies() { return 0; }
-
-// TODO: Read and return CPU utilization
-vector<string> LinuxParser::CpuUtilization() { return {}; }
-
 // Read /proc/stat and return total processes, running processes, and cpu utilization
-LinuxParser::procData LinuxParser::Processes() {
+LinuxParser::procData LinuxParser::Processor() {
   string line;
   //start stream for /proc/stat file
   std::ifstream stream(kProcDirectory + kStatFilename);
@@ -271,6 +255,39 @@ vector<LinuxParser::usage> LinuxParser::ProcessorUsage(LinuxParser::procData& da
 
 }
 
+
+LinuxParser::processStat LinuxParser::Process(int pid){
+  std::ifstream stream(kProcDirectory + std::to_string(pid) + kStatFilename);
+
+  //struct to store data
+  LinuxParser::processStat stat;
+
+  string line;
+  //regex
+  std::smatch match;
+  std::regex re("(?:\\(([^)]+)\\)\\s*[A-Z]\\s*)(?:\\-?\\d+\\s*){10}(\\d+)\\s*(\\d+)\\s*(\\d+)\\s*(\\d+)\\s*(?:\\-?\\d+\\s*){4}(\\d+)");
+
+  if (stream.is_open()) {
+    string fl;
+    while (std::getline(stream, line)) {
+        fl += line;
+    }
+    stream.close();
+
+    //got match
+    if (std::regex_search(fl, match, re) && match.size() > 1) {
+      stat.name = match[1].str();
+      stat.utime = std::stoi(match[2].str());
+      stat.stime = std::stoi(match[3].str());
+      stat.cutime = std::stoi(match[4].str());
+      stat.cstime = std::stoi(match[5].str());
+      stat.starttime = std::stoi(match[6].str());
+    }
+
+  }
+
+  return stat;
+}
 
 // TODO: Read and return the command associated with a process
 // REMOVE: [[maybe_unused]] once you define the function

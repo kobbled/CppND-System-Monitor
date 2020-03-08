@@ -17,8 +17,26 @@ int Process::Pid() { return this->pid_; }
 //set pid
 void Process::Pid(int pid) { this->pid_ = pid; }
 
-// TODO: Return this process's CPU utilization
-float Process::CpuUtilization() { return 0; }
+//parse stat cpu usage anc calculate percentage
+void Process::Usage(){
+    //parse stat file store as a processStat struct
+    //(ref:) https://stackoverflow.com/questions/16726779/how-do-i-get-the-total-cpu-usage-of-an-application-from-proc-pid-stat/16736599#16736599
+    LinuxParser::processStat cpu = LinuxParser::Process(pid_);
+
+    long total_time = cpu.utime + cpu.stime + 
+                      cpu.cutime + cpu.cstime;
+    
+    //store startime as member
+    starttime_ = cpu.starttime;
+
+    long seconds = LinuxParser::UpTime() - cpu.starttime/sysconf(_SC_CLK_TCK);
+
+    // store usage for comparison
+    usage_ = (float)(total_time/sysconf(_SC_CLK_TCK))/seconds ;
+}
+
+// Return this process's CPU utilization
+float Process::CpuUtilization() { return (usage_); }
 
 // TODO: Return the command that generated this process
 string Process::Command() { return string(); }

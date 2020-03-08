@@ -49,7 +49,7 @@ std::string System::OperatingSystem() { return LinuxParser::OperatingSystem(); }
 //for comparison
 void System::parseProcessorData(){
     old_proc_stat_ = proc_stat_;
-    proc_stat_ = LinuxParser::Processes();
+    proc_stat_ = LinuxParser::Processor();
 }
 
 // Return the number of processes actively running on the system
